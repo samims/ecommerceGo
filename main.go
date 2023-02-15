@@ -1,29 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/samims/ecommerceGo/handlers"
 )
 
 func main() {
-	http.HandleFunc("/", func(http.ResponseWriter, *http.Request) {
-		log.Print("Hello World")
-	})
+	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 
-	http.Handle("/goodbye", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		data, err := io.ReadAll(r.Body)
+	ph := handlers.NewProduct(l)
 
+	sm := http.NewServeMux()
+	sm.Handle("/", ph)
+
+	s := http.Server{
+		Addr:         ":9090",
+		Handler:      sm,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+	}
+
+	go func() {
+		err := s.ListenAndServe()
 		if err != nil {
-			http.Error(w, "Oooopsy", http.StatusBadRequest)
-			return
+			l.Fatal(err)
 		}
+	}()
 
-		log.Printf("Data %s", data)
-		fmt.Fprintf(w, "Bye %s\n", string(data))
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	signal.Notify(sigChan, syscall.SIGTERM)
+	sig := <-sigChan
+	l.Printf("Received terminate %s \n", sig)
 
-	}))
+	// gives 30 seconds time to complete current request before shutdown
+	tc, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	http.ListenAndServe(":9090", nil)
+	s.Shutdown(tc)
+
 }
