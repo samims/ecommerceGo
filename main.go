@@ -39,7 +39,7 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt)
 	signal.Notify(sigChan, syscall.SIGTERM)
 	sig := <-sigChan
-	l.Printf("Received terminate %s \n", sig)
+	l.Printf("Received terminate %s shutting down gracefully...\n\n\n", sig)
 
 	// gives 30 seconds time to complete current request before shutdown
 	tc, cancel := context.WithTimeout(context.Background(), 30*time.Second)
