@@ -12,7 +12,13 @@ import (
 
 var ErrProductNotFound = fmt.Errorf("product not found")
 
+// Product defines the structure for API product
+// swagger:model
 type Product struct {
+	// the id for the product
+	//
+	// require: true
+	// min: 1
 	ID          int     `json:"id"`
 	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
@@ -24,6 +30,13 @@ type Product struct {
 }
 
 type Products []*Product
+
+// ProductResponseWrapper is list of product in response
+// swagger:response ProductResponseWrapper
+type ProductResponseWrapper struct {
+	// in: body
+	Body []Product
+}
 
 func (p *Product) Validate() error {
 	validate := validator.New()
@@ -73,24 +86,33 @@ func getNextID() int {
 
 func UpdateProducts(id int, p *Product) error {
 
-	_, pos, err := findProduct(id)
-	if err != nil {
-		return err
+	idx := findIndexByProductID(id)
+	if idx == -1 {
+		return ErrProductNotFound
 	}
 	p.ID = id
-	productList[pos] = p
+	productList[idx] = p
 	return nil
 
 }
 
-func findProduct(id int) (*Product, int, error) {
-
+func findIndexByProductID(id int) int {
 	for i, p := range productList {
 		if p.ID == id {
-			return p, i, nil
+			return i
 		}
 	}
-	return nil, 0, ErrProductNotFound
+	return -1
+}
+
+func DeleteProduct(id int) error {
+	idx := findIndexByProductID(id)
+	if idx == -1 {
+		return ErrProductNotFound
+	}
+	productList = append(productList[:idx], productList[idx+1:]...)
+	return nil
+
 }
 
 var productList = []*Product{

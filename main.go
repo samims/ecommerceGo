@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 	"github.com/samims/ecommerceGo/handlers"
 )
@@ -28,8 +30,19 @@ func main() {
 	putRouter.Use(ph.MiddlewareValidateProduct)
 
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", ph.AddProduct)
+	postRouter.HandleFunc("/", ph.Create)
 	postRouter.Use(ph.MiddlewareValidateProduct)
+
+	deleteRouter := sm.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/{id:[0-9]+}", ph.DeleteProduct)
+
+	ops := middleware.RedocOpts{
+		SpecURL: "/swagger.yaml",
+	}
+	sh := middleware.Redoc(ops, nil)
+
+	getRouter.Handle("/docs", sh)
+	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
 	s := http.Server{
 		Addr:         ":9090",
@@ -40,6 +53,7 @@ func main() {
 	}
 
 	go func() {
+		fmt.Println("Starting the server on port ", s.Addr)
 		err := s.ListenAndServe()
 		if err != nil {
 			l.Fatal(err)
@@ -56,6 +70,6 @@ func main() {
 	tc, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	s.Shutdown(tc)
+	_ = s.Shutdown(tc)
 
 }
