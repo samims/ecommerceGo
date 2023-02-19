@@ -1,0 +1,36 @@
+package handlers
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/samims/ecommerceGo/data"
+)
+
+// swagger:route DELETE /products/{id} productAPIs deleteProduct
+// Returns blank success
+// responses:
+//	200: noContent
+
+// DeleteProduct delete a product
+func (p *Products) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id, _ := strconv.Atoi(vars["id"])
+
+	p.l.Println("Handle delete product", id)
+
+	if err := data.DeleteProduct(id); err != nil {
+		switch err {
+		case data.ErrProductNotFound:
+			p.l.Println("[Error]: Product not found with id ", id)
+			http.Error(w, "product not found", http.StatusNotFound)
+		default:
+			http.Error(w, "Error updating product", http.StatusInternalServerError)
+		}
+		return
+
+	}
+
+}
