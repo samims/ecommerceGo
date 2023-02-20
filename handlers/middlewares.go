@@ -47,6 +47,7 @@ func (p *Products) MiddlewareValidateProduct(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
 		req := r.WithContext(ctx)
 
+		w.Header().Add("Content-Type", "application/json")
 		next.ServeHTTP(w, req)
 	})
 }
