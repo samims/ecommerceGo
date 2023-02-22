@@ -32,10 +32,8 @@ func (r *LocalRouter) GetRouter() *mux.Router {
 	ph := handlers.NewProduct(r.l)
 	sm := mux.NewRouter()
 
-	storage := handlers.NewLocalDiskStorage(r.cfg.FileDir, "id")
-
 	// Initialize the files handler
-	files := handlers.NewFiles(storage, r.l, r.cfg)
+	files := handlers.NewFiles(r.l, r.cfg)
 
 	getRouter := sm.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", ph.GetProducts)

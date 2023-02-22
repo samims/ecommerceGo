@@ -24,11 +24,11 @@ type Files struct {
 	cfg   *configs.Config
 }
 
-func NewFiles(s *LocalDiskStorage, l *logrus.Logger, cfg *configs.Config) *Files {
+func NewFiles(l *logrus.Logger, cfg *configs.Config) *Files {
 	return &Files{
-		log:   l,
-		store: s,
-		cfg:   cfg,
+		log: l,
+		//store: s,
+		cfg: cfg,
 	}
 }
 
