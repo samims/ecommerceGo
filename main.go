@@ -1,79 +1,41 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
-	"github.com/go-openapi/runtime/middleware"
-	gorillaHandlers "github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/samims/ecommerceGo/handlers"
+	"github.com/samims/ecommerceGo/configs"
+	"github.com/samims/ecommerceGo/logger"
+	"github.com/samims/ecommerceGo/router"
+	"github.com/samims/ecommerceGo/server"
+	"github.com/sirupsen/logrus"
 )
 
+var bindAddress = ":9090"
+var logLevel = logrus.DebugLevel
+var imagedDIR = "./tmp/images"
+var allowedHosts = []string{"http://localhost:8000"}
+
 func main() {
-	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 
-	ph := handlers.NewProduct(l)
+	l := logger.NewLogger(logLevel)
 
-	sm := mux.NewRouter()
+	sCfg := configs.NewServerConf(":9090", allowedHosts, 120*time.Second, 15*time.Second, 15*time.Second)
+	cfg := configs.NewConfig(allowedHosts, imagedDIR, sCfg)
 
-	getRouter := sm.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/", ph.GetProducts)
+	r := router.NewLocalRouter(l, cfg)
+	routerHandler := r.GetRouter()
 
-	putRouter := sm.Methods(http.MethodPut).Subrouter()
-	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
-	putRouter.Use(ph.MiddlewareValidateProduct)
+	s := server.NewServer(routerHandler, cfg)
 
-	postRouter := sm.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", ph.Create)
-	postRouter.Use(ph.MiddlewareValidateProduct)
-
-	deleteRouter := sm.Methods(http.MethodDelete).Subrouter()
-	deleteRouter.HandleFunc("/{id:[0-9]+}", ph.DeleteProduct)
-
-	ops := middleware.RedocOpts{
-		SpecURL: "/swagger.yaml",
-	}
-	sh := middleware.Redoc(ops, nil)
-
-	getRouter.Handle("/docs", sh)
-	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
-
-	// cors headers
-	ch := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:8000"}))
-
-	s := http.Server{
-		Addr:         ":9090",
-		Handler:      ch(sm),
-		IdleTimeout:  120 * time.Second,
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
-	}
-
-	go func() {
-		fmt.Println("Starting the server on port ", s.Addr)
+	go func(s *server.Server) {
+		fmt.Println("Starting the server on port ", s.Srv.Addr)
 		err := s.ListenAndServe()
 		if err != nil {
 			l.Fatal(err)
 		}
-	}()
+	}(s)
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt)
-	signal.Notify(sigChan, syscall.SIGTERM)
-	sig := <-sigChan
-	l.Printf("Received terminate %s shutting down gracefully...\n\n\n", sig)
-
-	// gives 30 seconds time to complete current request before shutdown
-	tc, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	_ = s.Shutdown(tc)
+	s.GraceFulShutDown(10 * time.Second)
 
 }

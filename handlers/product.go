@@ -14,7 +14,8 @@
 package handlers
 
 import (
-	"log"
+	"github.com/samims/ecommerceGo/configs"
+	"github.com/sirupsen/logrus"
 )
 
 //// // A list of products returned in the response
@@ -48,9 +49,10 @@ type productsNoContent struct {
 }
 
 type Products struct {
-	l *log.Logger
+	l   *logrus.Logger
+	cfg *configs.Config
 }
 
-func NewProduct(l *log.Logger) *Products {
+func NewProduct(l *logrus.Logger) *Products {
 	return &Products{l: l}
 }
