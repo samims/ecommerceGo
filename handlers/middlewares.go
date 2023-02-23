@@ -98,24 +98,13 @@ func (p *Products) MiddlewareValidateProduct(next http.Handler) http.Handler {
 	})
 }
 
-//func (p *Products) LogMiddleWare(next http.Handler) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		ctx := context.WithValue(r.Context(), LogVar{}, log)
-//		req := r.WithContext(ctx)
-//
-//	}
-//	}
-
-//func (p *Products) CorsMiddleWare(handler http.Handler) http.Handler {
-//	return gorillaHandlers.CORS(
-//		gorillaHandlers.AllowedOrigins(p.cfg.AllowedHosts),
-//	)(handler)
-//}
-
+// CORS  is custom cors middleware
 func CORS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//origin := r.Header.Get("Origin")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// NOTE: write your allowed origin here, you can little customize
+		// & pass the origin through dependency injection
+		origin := r.Header.Get("Origin")
+		w.Header().Set("Access-Control-Allow-Origin", origin)
 		if r.Method == "OPTIONS" {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Methods", "GET,POST")

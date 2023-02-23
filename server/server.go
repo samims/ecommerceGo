@@ -1,3 +1,6 @@
+// Package server provides a struct for HTTP server and methods to run it
+// and handle graceful shutdown.
+
 package server
 
 import (
@@ -13,11 +16,13 @@ import (
 	"github.com/samims/ecommerceGo/configs"
 )
 
+// Server holds an HTTP server instance and router instance
 type Server struct {
 	Router http.Handler
 	Srv    *http.Server
 }
 
+// NewServer creates and returns a new instance of Server
 func NewServer(handler http.Handler, cfg *configs.Config) *Server {
 	ch := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins(cfg.AllowedHosts))
 
@@ -33,6 +38,7 @@ func NewServer(handler http.Handler, cfg *configs.Config) *Server {
 	}
 }
 
+// GraceFulShutDown waits for an interrupt signal and gracefully shuts down the server
 func (s *Server) GraceFulShutDown(killTime time.Duration) {
 	stopCh := make(chan os.Signal, 1)
 	signal.Notify(stopCh, os.Interrupt)
@@ -52,23 +58,12 @@ func (s *Server) GraceFulShutDown(killTime time.Duration) {
 
 }
 
-//func NewServer(Router http.Handler, conf *ServerConf) *Server {
-//	return &Server{
-//		Router: Router,
-//		Srv: &http.Server{
-//			Addr:         conf.Addr,
-//			Handler:      Router,
-//			IdleTimeout:  conf.IdleTimeOut,
-//			ReadTimeout:  conf.ReadTimeOut,
-//			WriteTimeout: conf.WriteTimeOut,
-//		},
-//	}
-//}
-
+// ListenAndServe starts the HTTP server
 func (s *Server) ListenAndServe() error {
 	return s.Srv.ListenAndServe()
 }
 
+// Shutdown shuts down the HTTP server
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.Srv.Shutdown(ctx)
 }

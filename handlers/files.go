@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/samims/ecommerceGo/configs"
 	"github.com/sirupsen/logrus"
 )
@@ -24,11 +25,11 @@ type Files struct {
 	cfg   *configs.Config
 }
 
-func NewFiles(l *logrus.Logger, cfg *configs.Config) *Files {
+func NewFiles(s Storage, l *logrus.Logger, cfg *configs.Config) *Files {
 	return &Files{
-		log: l,
-		//store: s,
-		cfg: cfg,
+		log:   l,
+		store: s,
+		cfg:   cfg,
 	}
 }
 
@@ -73,29 +74,98 @@ func (f *Files) saveFile(filenameWithExt, path string, w http.ResponseWriter, r 
 	f.log.Info("File saved successfully")
 }
 
-func (f *Files) UploadSingleFile(w http.ResponseWriter, r *http.Request) {
-	//file, header, err := ctx.Request.FormFile("image")
+//func (f *Files) UploadSingleFile(w http.ResponseWriter, r *http.Request) {
+//	//file, header, err := ctx.Request.FormFile("image")
+//	file, header, err := r.FormFile("image")
+//	if err != nil {
+//		http.Error(w, "Error fetching file from req", http.StatusInternalServerError)
+//		return
+//	}
+//	unixStr := strconv.FormatInt(time.Now().Unix(), 10)
+//	fileName := header.Filename
+//	fileExt := filepath.Ext(fileName)
+//	fileNameWithExt := fileName + unixStr + fileExt
+//	f.saveFile(fileNameWithExt, f.cfg.FileDir, w, file)
+//
+//	w.WriteHeader(http.StatusOK)
+//	w.Write([]byte("Uploaded Successfully"))
+//
+//	response := struct {
+//		Filepath string `json:"filepath"`
+//	}{
+//		Filepath: "filePathStr" + "x",
+//	}
+//
+//	w.Header().Set("Content-Type", "application/json")
+//	w.WriteHeader(http.StatusOK)
+//	json.NewEncoder(w).Encode(response)
+//}
+
+func (f *Files) UploadMultipart(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("image")
 	if err != nil {
 		http.Error(w, "Error fetching file from req", http.StatusInternalServerError)
 		return
 	}
-	unixStr := strconv.FormatInt(time.Now().Unix(), 10)
-	fileName := header.Filename
-	fileExt := filepath.Ext(fileName)
-	fileNameWithExt := fileName + unixStr + fileExt
-	f.saveFile(fileNameWithExt, f.cfg.FileDir, w, file)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Uploaded Successfully"))
+	// Save the file to storage
+	filePath, err := f.store.Save(file, header)
+	if err != nil {
+		f.log.Error("Unable to save file", "error", err)
+		http.Error(w, "Unable to save file", http.StatusInternalServerError)
+		return
+	}
 
+	// Return the file path to the client
 	response := struct {
 		Filepath string `json:"filepath"`
 	}{
-		Filepath: "filePathStr" + "x",
+		Filepath: filePath,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+
+	buf, err := os.ReadFile("sid.png")
+
+	if err != nil {
+
+		log.Fatal(err)
+	}
+
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Disposition", `attachment;filename="sid.png"`)
+
+	w.Write(buf)
+}
+
+func (f *Files) ServeImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	unixTime := vars["unixTime"]
+	fileName := vars["fileName"]
+	imagePath := fmt.Sprintf("./tmp/images/%s/%s", unixTime, fileName)
+
+	file, err := os.Open(imagePath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			f.log.Errorf("Closing file failed after reading from serve image for path %s", imagePath)
+		}
+	}(file)
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
 }
