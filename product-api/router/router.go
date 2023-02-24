@@ -3,11 +3,12 @@ package router
 import (
 	"net/http"
 
+	"product-api/configs"
+	"product-api/handlers"
+	"product-api/storage"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
-	"github.com/samims/ecommerceGo/configs"
-	"github.com/samims/ecommerceGo/handlers"
-	"github.com/samims/ecommerceGo/storage"
 	"github.com/sirupsen/logrus"
 )
 

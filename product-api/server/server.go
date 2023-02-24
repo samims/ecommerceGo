@@ -12,8 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"product-api/configs"
+
 	gorillaHandlers "github.com/gorilla/handlers"
-	"github.com/samims/ecommerceGo/configs"
 )
 
 // Server holds an HTTP server instance and router instance

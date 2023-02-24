@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/samims/ecommerceGo/data"
+	"product-api/data"
 )
 
 type KeyProduct struct{}

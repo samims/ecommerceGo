@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/samims/ecommerceGo/data"
+	"product-api/data"
 )
 
 // swagger:route GET / productAPIs listProducts

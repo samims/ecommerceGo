@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samims/ecommerceGo/configs"
-	"github.com/samims/ecommerceGo/logger"
-	"github.com/samims/ecommerceGo/router"
-	"github.com/samims/ecommerceGo/server"
+	"product-api/configs"
+	"product-api/logger"
+	"product-api/router"
+	"product-api/server"
+
 	"github.com/sirupsen/logrus"
 )
 

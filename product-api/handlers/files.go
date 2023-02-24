@@ -10,8 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"product-api/configs"
+
 	"github.com/gorilla/mux"
-	"github.com/samims/ecommerceGo/configs"
 	"github.com/sirupsen/logrus"
 )
 

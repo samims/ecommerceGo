@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/samims/ecommerceGo/configs"
+	"product-api/configs"
+
 	"github.com/sirupsen/logrus"
 )
 
