@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"product-api/configs"
+	"product-images/configs"
 
 	"github.com/sirupsen/logrus"
 )
