@@ -1,0 +1,56 @@
+basePath: /
+consumes:
+    - application/json
+definitions:
+    Product:
+        description: Product defines the structure for API product
+        x-go-package: _/Users/sam/code/golang_practice/ecommerceGo/product-api/data
+info:
+    description: Documentation for Product API
+    title: Product API
+    version: 1.0.0
+paths:
+    /:
+        get:
+            description: Returns a list of products
+            operationId: listProducts
+            responses:
+                "200":
+                    $ref: '#/responses/ProductResponseWrapper'
+            tags:
+                - productAPIs
+    /products:
+        post:
+            operationId: createProduct
+            tags:
+                - productAPIs
+    /products/{id}:
+        delete:
+            description: Returns blank success
+            operationId: deleteProduct
+            parameters:
+                - description: The id of the product to delete
+                  format: int64
+                  in: path
+                  name: id
+                  required: true
+                  type: integer
+                  x-go-name: ID
+            responses:
+                "200":
+                    $ref: '#/responses/noContent'
+            tags:
+                - productAPIs
+produces:
+    - application/json
+responses:
+    ProductResponseWrapper:
+        description: ProductResponseWrapper is list of product in response
+        schema:
+            items: {}
+            type: array
+    noContent:
+        description: ""
+schemes:
+    - http
+swagger: "2.0"

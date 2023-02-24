@@ -1,0 +1,87 @@
+# curl localhost:9090
+GET localhost:9090
+
+###
+
+# POST products
+POST localhost:9090
+Content-Type: application/json
+
+###
+
+# PUT request
+PUT localhost:9090/100
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 400, "Response status is not 400");
+    });
+ %}
+
+
+###
+# PUT request
+PUT localhost:9090/1
+
+
+{
+  "id": 1,
+  "name": "tea",
+  "price": 4.4,
+  "description": "nice cup of tea",
+  "sku": "anx-cff-fdf"
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+
+    client.test("Response content-type is json", function() {
+        const type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+
+    client.test("Response content-type is json", function() {
+        const type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+
+
+%}
+
+###
+
+
+# POST products
+POST http://localhost:9090/
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "tea",
+  "description": "nice cup of tea",
+  "price": 12.0,
+  "sku": "fjx-rts-ff"
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 201, "Response status is not 201");
+    });
+
+    client.test("Response content-type is json", function() {
+        const type = response.contentType.mimeType;
+        client.assert(type === "application/json", "Expected 'application/json' but received '" + type + "'");
+    });
+
+    // client.test("Response contains product ID", function() {
+    //     const body = JSON.parse(response.body);
+    //
+    //     client.assert(body.hasOwnProperty("id"), "Cannot find 'id' field in response body");
+    // });
+%}
+
+###
+# Delete
+DELETE localhost:9090/100

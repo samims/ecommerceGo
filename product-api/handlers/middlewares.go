@@ -1,57 +1,12 @@
 package handlers
 
 import (
-	"compress/gzip"
 	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/samims/ecommerceGo/data"
 )
-
-type GzipHandler struct {
-}
-
-// GZipResponseMiddleWare is a middleware that compresses response using GZip format.
-// It takes a http.Handler as an argument, and returns a http.Handler
-func (g *GzipHandler) GZipResponseMiddleWare(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		wrw := NewWrappedResponseWriter(w)
-		wrw.Header().Set("Content-Encoding", "gzip")
-		next.ServeHTTP(w, r)
-		return
-	})
-}
-
-// WrappedResponseWriter is a custom http.ResponseWriter that wraps the default http.ResponseWriter
-// and uses gzip writer to compress the output.
-type WrappedResponseWriter struct {
-	responseWriter http.ResponseWriter
-	gzipWriter     *gzip.Writer
-}
-
-// NewWrappedResponseWriter creates a new WrappedResponseWriter, which wraps the default http.ResponseWriter
-// and uses gzip writer to compress the output.
-func NewWrappedResponseWriter(w http.ResponseWriter) *WrappedResponseWriter {
-	// Create a new gzip writer that writes to the underlying http.ResponseWriter.
-	gw := gzip.NewWriter(w)
-	return &WrappedResponseWriter{gzipWriter: gw, responseWriter: w}
-}
-
-// Header returns the header map that will be sent by WriteHeader.
-func (ww *WrappedResponseWriter) Header() http.Header {
-	return ww.responseWriter.Header()
-}
-
-// Write writes the data to the gzip writer and returns the number of bytes written and any error encountered.
-func (ww *WrappedResponseWriter) Write(d []byte) (int, error) {
-	return ww.gzipWriter.Write(d)
-}
-
-// WriteHeader sends an HTTP response header with the provided status code.
-func (ww *WrappedResponseWriter) WriteHeader(statusCode int) {
-	ww.responseWriter.WriteHeader(statusCode)
-}
 
 type KeyProduct struct{}
 type LogVar struct{}

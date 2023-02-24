@@ -31,6 +31,8 @@ func NewLocalRouter(l *logrus.Logger, cfg *configs.Config) *LocalRouter {
 func (lr *LocalRouter) GetRouter() *mux.Router {
 
 	ph := handlers.NewProduct(lr.l)
+	mw := handlers.GzipHandler{}
+
 	r := mux.NewRouter()
 
 	s := storage.NewFileStorage(lr.l, lr.cfg)
@@ -71,6 +73,8 @@ func (lr *LocalRouter) GetRouter() *mux.Router {
 		http.ServeFile(w, r, "static/upload.html")
 	})
 
-	r.HandleFunc("/images/{unixTime}/{fileName}", files.ServeImage)
+	imageAccessRouter := r.Methods(http.MethodGet).Subrouter()
+	imageAccessRouter.HandleFunc("/images/{unixTime}/{fileName}", files.ServeImage)
+	imageAccessRouter.Use(mw.GzipMiddleware)
 	return r
 }
