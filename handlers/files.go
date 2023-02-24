@@ -41,7 +41,7 @@ func (f *Files) invalidURI(uri string, w http.ResponseWriter) {
 func (f *Files) saveFile(filenameWithExt, path string, w http.ResponseWriter, r io.ReadCloser) {
 	f.log.Info("Save file for product", filenameWithExt, "path", path)
 	// Create the directory if it doesn't exist
-	dir := filepath.Join(f.cfg.FileDir)
+	dir := filepath.Join(f.cfg.ImageDIR)
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		f.log.Error("Unable to create directory", "dir", dir, "error", err)
@@ -85,7 +85,7 @@ func (f *Files) saveFile(filenameWithExt, path string, w http.ResponseWriter, r 
 //	fileName := header.Filename
 //	fileExt := filepath.Ext(fileName)
 //	fileNameWithExt := fileName + unixStr + fileExt
-//	f.saveFile(fileNameWithExt, f.cfg.FileDir, w, file)
+//	f.saveFile(fileNameWithExt, f.cfg.ImageDIR, w, file)
 //
 //	w.WriteHeader(http.StatusOK)
 //	w.Write([]byte("Uploaded Successfully"))
@@ -147,7 +147,7 @@ func (f *Files) ServeImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	unixTime := vars["unixTime"]
 	fileName := vars["fileName"]
-	imagePath := fmt.Sprintf("./tmp/images/%s/%s", unixTime, fileName)
+	imagePath := fmt.Sprintf("%s/%s/%s", f.cfg.ImageDIR, unixTime, fileName)
 
 	file, err := os.Open(imagePath)
 	if err != nil {

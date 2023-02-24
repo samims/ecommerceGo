@@ -27,7 +27,7 @@ func NewFileStorage(l *logrus.Logger, cfg *configs.Config) *FileStorage {
 	return &FileStorage{
 		log:      l,
 		cfg:      cfg,
-		dir:      cfg.FileDir,
+		dir:      cfg.ImageDIR,
 		mediaURI: cfg.MediaURL,
 	}
 }
@@ -44,7 +44,7 @@ func (s *FileStorage) Save(file multipart.File, header *multipart.FileHeader) (s
 	ext := filepath.Ext(filename)
 	now := time.Now().Unix()
 	filename = fmt.Sprintf("%d%s", now, ext)
-	fileDir := filepath.Join(s.cfg.FileDir, fmt.Sprintf("%d", now))
+	fileDir := filepath.Join(s.cfg.ImageDIR, fmt.Sprintf("%d", now))
 	fileAbsPath := fmt.Sprintf("%s/%d/%s", s.mediaURI, now, filename)
 
 	// Create the directory if it doesn't exist

@@ -2,15 +2,15 @@ package configs
 
 type Config struct {
 	AllowedHosts []string
-	FileDir      string
+	ImageDIR     string
 	MediaURL     string
 	ServerCfg    *ServerConf
 }
 
-func NewConfig(allowedHosts []string, fileDIR, mediaURL string, sCfg *ServerConf) *Config {
+func NewConfig(allowedHosts []string, imageDIR, mediaURL string, sCfg *ServerConf) *Config {
 	cfg := &Config{
 		AllowedHosts: allowedHosts,
-		FileDir:      fileDIR,
+		ImageDIR:     imageDIR,
 		ServerCfg:    sCfg,
 		MediaURL:     mediaURL,
 	}
