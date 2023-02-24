@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"product-api/data"
+
 	"github.com/gorilla/mux"
-	"github.com/samims/ecommerceGo/data"
 )
 
 // swagger:route DELETE /products/{id} productAPIs deleteProduct

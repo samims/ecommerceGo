@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"product-api/data"
+
 	"github.com/gorilla/mux"
-	"github.com/samims/ecommerceGo/data"
 )
 
 // UpdateProducts update the product with the given ID using data from the request body.

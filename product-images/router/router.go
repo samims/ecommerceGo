@@ -3,8 +3,10 @@ package router
 import (
 	"net/http"
 
-	"product-api/configs"
-	"product-api/handlers"
+	"product-images/configs"
+	"product-images/handlers"
+	localMiddleware "product-images/middlewares"
+	"product-images/storage"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
@@ -30,37 +32,37 @@ func NewLocalRouter(l *logrus.Logger, cfg *configs.Config) *LocalRouter {
 // The router is ready to use for the HTTP server.
 func (lr *LocalRouter) GetRouter() *mux.Router {
 
-	ph := handlers.NewProduct(lr.l)
+	mw := localMiddleware.GzipHandler{}
 
 	r := mux.NewRouter()
 
-	getRouter := r.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/", ph.GetProducts)
-
-	putRouter := r.Methods(http.MethodPut).Subrouter()
-	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
-	putRouter.Use(ph.MiddlewareValidateProduct)
-
-	postRouter := r.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", ph.Create)
-
-	postRouter.Use(ph.MiddlewareValidateProduct)
-
-	deleteRouter := r.Methods(http.MethodDelete).Subrouter()
-	deleteRouter.HandleFunc("/{id:[0-9]+}", ph.DeleteProduct)
+	s := storage.NewFileStorage(lr.l, lr.cfg)
+	// Initialize the files handler
+	files := handlers.NewFiles(s, lr.l, lr.cfg)
 
 	ops := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
 	sh := middleware.Redoc(ops, nil)
 
+	getRouter := r.Methods(http.MethodGet).Subrouter()
+
 	getRouter.Handle("/docs", sh)
 	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
+	// fileAPIs
+	fileUploadRouter := r.Methods(http.MethodPost).Subrouter()
+	fileUploadRouter.HandleFunc("/upload", files.UploadMultipart)
+
+	// Serve static files from the "static" directory
 	fs := http.FileServer(http.Dir("static"))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
 
+	// Serve the index.html file
 	r.HandleFunc("/static", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/upload.html")
 	})
 
+	imageAccessRouter := r.Methods(http.MethodGet).Subrouter()
+	imageAccessRouter.HandleFunc("/images/{unixTime}/{fileName}", files.ServeImage)
+	imageAccessRouter.Use(mw.GzipMiddleware)
 	return r
 }

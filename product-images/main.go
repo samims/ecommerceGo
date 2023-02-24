@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	"product-api/configs"
-	"product-api/logger"
-	"product-api/router"
-	"product-api/server"
+	"product-images/configs"
+	"product-images/logger"
+	"product-images/router"
+	"product-images/server"
 
 	"github.com/sirupsen/logrus"
 )
 
-var bindAddress = ":9090"
+var bindAddress = ":8080"
 var logLevel = logrus.DebugLevel
 var imagedDIR = "./tmp/images"
 var mediaURL = "/images"
@@ -22,7 +22,7 @@ func main() {
 
 	l := logger.NewLogger(logLevel)
 
-	sCfg := configs.NewServerConf(":9090", allowedHosts, 120*time.Second, 15*time.Second, 15*time.Second)
+	sCfg := configs.NewServerConf(bindAddress, allowedHosts, 120*time.Second, 15*time.Second, 15*time.Second)
 	cfg := configs.NewConfig(allowedHosts, imagedDIR, mediaURL, sCfg)
 
 	r := router.NewLocalRouter(l, cfg)

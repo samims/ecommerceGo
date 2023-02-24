@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"product-api/configs"
+	"product-images/configs"
 
 	gorillaHandlers "github.com/gorilla/handlers"
 )
