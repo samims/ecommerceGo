@@ -70,6 +70,14 @@ func GetProducts() Products {
 	return productList
 }
 
+func GetProductByID(id int) (*Product, error) {
+	idx := findIndexByProductID(id)
+	if idx == -1 {
+		return new(Product), ErrProductNotFound
+	}
+	return productList[idx], nil
+}
+
 func AddProduct(p *Product) {
 	p.ID = getNextID()
 	productList = append(productList, p)
@@ -119,7 +127,7 @@ var productList = []*Product{
 	{
 		ID:          1,
 		Name:        "Latte",
-		Description: "Frothy milk cofee",
+		Description: "Frothy milk coffee",
 		Price:       2.45,
 		SKU:         "abc323",
 		CreatedOn:   time.Now().String(),
