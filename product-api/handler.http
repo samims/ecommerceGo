@@ -2,6 +2,10 @@
 GET localhost:9090
 
 ###
+# Get by id
+GET localhost:9090/1
+
+###
 
 # POST products
 POST localhost:9090

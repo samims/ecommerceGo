@@ -29,6 +29,9 @@ func main() {
 		os.Exit(1)
 	}
 	log.Println("Serving on port 9092...")
-	gs.Serve(l)
+	err = gs.Serve(l)
+	if err != nil {
+		log.Fatal("unable to serve grpc ", err)
+	}
 
 }

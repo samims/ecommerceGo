@@ -6,9 +6,13 @@ import (
 	"product-api/configs"
 	"product-api/handlers"
 
+	protos "currency/protos/currency"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type LocalRouter struct {
@@ -30,12 +34,14 @@ func NewLocalRouter(l *logrus.Logger, cfg *configs.Config) *LocalRouter {
 // The router is ready to use for the HTTP server.
 func (lr *LocalRouter) GetRouter() *mux.Router {
 
-	ph := handlers.NewProduct(lr.l)
-
 	r := mux.NewRouter()
+
+	cc := lr.getCurrencyGrpcClient()
+	ph := handlers.NewProduct(lr.l, cc)
 
 	getRouter := r.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", ph.GetProducts)
+	getRouter.HandleFunc("/{id:[0-9]+}", ph.GetByID)
 
 	putRouter := r.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
@@ -63,4 +69,17 @@ func (lr *LocalRouter) GetRouter() *mux.Router {
 	})
 
 	return r
+}
+
+func (lr *LocalRouter) getCurrencyGrpcClient() protos.CurrencyClient {
+	// TODO: it's insecure make it secure
+	//creds := credentials.NewTLS(nil)
+	//conn, err := grpc.Dial(lr.cfg.CurrencyServerBase, grpc.WithInsecure())
+	creds := insecure.NewCredentials()
+	conn, err := grpc.Dial(lr.cfg.CurrencyServerBase, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		panic(err)
+	}
+	currencyGrpcClient := protos.NewCurrencyClient(conn)
+	return currencyGrpcClient
 }

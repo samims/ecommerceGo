@@ -20,6 +20,7 @@ type Currency struct {
 
 func NewCurrency(l *logrus.Logger) *Currency {
 	return &Currency{log: l}
+
 }
 
 func (c *Currency) GetRate(ctx context.Context, rr *protos.RateRequest) (*protos.RateResponse, error) {

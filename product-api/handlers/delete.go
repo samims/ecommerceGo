@@ -25,10 +25,10 @@ func (p *Products) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	if err := data.DeleteProduct(id); err != nil {
 		switch err {
 		case data.ErrProductNotFound:
-			p.l.Println("[Error]: Product not found with id ", id)
+			p.l.Println("[Error]: Product not found for deletion with id ", id)
 			http.Error(w, "product not found", http.StatusNotFound)
 		default:
-			http.Error(w, "Error updating product", http.StatusInternalServerError)
+			http.Error(w, "Error deleting product", http.StatusInternalServerError)
 		}
 		return
 
