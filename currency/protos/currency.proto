@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "currency/";
+
+// Define the gRPC service
+service Currency {
+  rpc GetRate(RateRequest) returns (RateResponse);
+}
+
+// Define the message type for the request
+message RateRequest {
+  string base = 1;
+  string destination = 2;
+}
+
+// Define the message type for the response
+message RateResponse {
+  float rate = 1;
+}
