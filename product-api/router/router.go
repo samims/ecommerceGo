@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"product-api/configs"
+	"product-api/data"
 	"product-api/handlers"
 
-	protos "currency/protos/currency"
+	//protos "currency/protos/currency"
+	protos "github.com/samims/ecommerceGO/currency/protos/currency"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
@@ -37,7 +39,8 @@ func (lr *LocalRouter) GetRouter() *mux.Router {
 	r := mux.NewRouter()
 
 	cc := lr.getCurrencyGrpcClient()
-	ph := handlers.NewProduct(lr.l, cc)
+	pdb := data.NewProductsDB(cc, lr.l)
+	ph := handlers.NewProduct(lr.l, pdb)
 
 	getRouter := r.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", ph.GetProducts)

@@ -14,8 +14,8 @@
 package handlers
 
 import (
-	protos "currency/protos/currency"
 	"product-api/configs"
+	"product-api/data"
 
 	"github.com/sirupsen/logrus"
 )
@@ -51,14 +51,14 @@ type productsNoContent struct {
 }
 
 type Products struct {
-	l              *logrus.Logger
-	cfg            *configs.Config
-	currencyClient protos.CurrencyClient
+	l         *logrus.Logger
+	cfg       *configs.Config
+	productDB *data.ProductsDB
 }
 
-func NewProduct(l *logrus.Logger, cc protos.CurrencyClient) *Products {
+func NewProduct(l *logrus.Logger, pdb *data.ProductsDB) *Products {
 	return &Products{
-		l:              l,
-		currencyClient: cc,
+		l:         l,
+		productDB: pdb,
 	}
 }

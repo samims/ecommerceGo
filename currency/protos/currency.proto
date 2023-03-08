@@ -15,7 +15,7 @@ message RateRequest {
 
 // Define the message type for the response
 message RateResponse {
-  float rate = 1;
+  double rate = 1;
 }
 
 

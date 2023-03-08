@@ -6,21 +6,25 @@ import (
 	"net/http"
 	"strconv"
 
+	config "github.com/samims/ecommerceGO/currency/configs"
+	"github.com/samims/ecommerceGO/currency/constants"
+
 	"github.com/sirupsen/logrus"
 )
 
-var rateURI string = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
+//var rateURI string = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
 
 type ExchangeRates struct {
 	log   *logrus.Logger
 	rates map[string]float64
 }
 
-func NewRates(l *logrus.Logger) (*ExchangeRates, error) {
+func NewRates(l *logrus.Logger, cfg config.Env) (*ExchangeRates, error) {
 	exchangeRates := &ExchangeRates{
 		log:   l,
 		rates: map[string]float64{},
 	}
+	rateURI := cfg.GetString(constants.EnvRateUri)
 
 	err := exchangeRates.gerRates(rateURI)
 
@@ -28,10 +32,20 @@ func NewRates(l *logrus.Logger) (*ExchangeRates, error) {
 
 }
 
+func (e *ExchangeRates) GetRate(base, dest string) (float64, error) {
+	br, ok := e.rates[base]
+	if !ok {
+		return 0, fmt.Errorf("rate not found for currency %s", base)
+	}
+	dr, ok := e.rates[dest]
+
+	return dr / br, nil
+}
+
 func (e *ExchangeRates) gerRates(uri string) error {
 	resp, err := http.DefaultClient.Get(uri)
 	if err != nil {
-
+		return fmt.Errorf("Getting error %s", err.Error())
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("expected error code 200 got %d", resp.StatusCode)
@@ -51,6 +65,7 @@ func (e *ExchangeRates) gerRates(uri string) error {
 		}
 		e.rates[c.Currency] = r
 	}
+	e.rates["EUR"] = 1
 	return nil
 
 }

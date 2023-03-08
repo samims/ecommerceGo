@@ -27,7 +27,7 @@ func (p *Products) UpdateProducts(w http.ResponseWriter, r *http.Request) {
 	prod := r.Context().Value(KeyProduct{}).(data.Product)
 
 	// Update the product with the specified ID.
-	if err := data.UpdateProducts(id, &prod); err != nil {
+	if err := p.productDB.UpdateProducts(id, &prod); err != nil {
 		switch err {
 		case data.ErrProductNotFound:
 			p.l.Println("[ERROR] product not found with provided id ", id)
