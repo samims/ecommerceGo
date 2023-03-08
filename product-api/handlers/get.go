@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
-	protos "currency/protos/currency"
 	"product-api/data"
 	"product-api/utils"
 
@@ -13,10 +11,12 @@ import (
 )
 
 func (p *Products) GetByID(w http.ResponseWriter, r *http.Request) {
+	p.l.Debug("Get record")
 	r.Header.Add("Content-Type", "application/json")
 
+	cur := r.URL.Query().Get("currency")
 	id := getProductID(r)
-	product, err := data.GetProductByID(id)
+	product, err := p.productDB.GetProductByID(id, cur)
 
 	if err != nil {
 		switch err {
@@ -31,22 +31,7 @@ func (p *Products) GetByID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// get exchange rate
-	rr := protos.RateRequest{
-		Base:        protos.Currencies_USD,
-		Destination: protos.Currencies_INR,
-	}
-	resp, err := p.currencyClient.GetRate(context.Background(), &rr)
-	if err != nil {
-		p.l.Println("[Error] getting new rate", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	p.l.Printf("Currency resp %#v", resp.Rate)
-
-	updatedProduct := *product
-	updatedProduct.Price = updatedProduct.Price * resp.Rate
-	utils.RespondWithJSON(w, http.StatusOK, updatedProduct)
+	utils.RespondWithJSON(w, http.StatusOK, product)
 
 }
 

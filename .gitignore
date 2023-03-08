@@ -1,2 +1,41 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+build
+dist
 tmp/
-/.idea
+
+
+# Compiled Go binaries
+*.exe
+*.test
+*.prof
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Log files
+*.log
+log/
+logs/
+LOG/
+Logs/
+*.log.*
+
+# Editors
+.idea/
+.vscode/
+.fleet/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db

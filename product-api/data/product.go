@@ -1,11 +1,15 @@
 package data
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
 	"time"
+
+	protos "github.com/samims/ecommerceGO/currency/protos/currency"
+	"github.com/sirupsen/logrus"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -22,7 +26,7 @@ type Product struct {
 	ID          int     `json:"id"`
 	Name        string  `json:"name" validate:"required"`
 	Description string  `json:"description"`
-	Price       float32 `json:"price" validate:"gt=0"`
+	Price       float64 `json:"price" validate:"gt=0"`
 	SKU         string  `json:"sku" validate:"required,sku"`
 	CreatedOn   string  `json:"-"`
 	UpdatedOn   string  `json:"-"`
@@ -30,6 +34,18 @@ type Product struct {
 }
 
 type Products []*Product
+
+type ProductsDB struct {
+	currency protos.CurrencyClient
+	log      *logrus.Logger
+}
+
+func NewProductsDB(c protos.CurrencyClient, l *logrus.Logger) *ProductsDB {
+	return &ProductsDB{
+		currency: c,
+		log:      l,
+	}
+}
 
 // ProductResponseWrapper is list of product in response
 // swagger:response ProductResponseWrapper
@@ -40,7 +56,10 @@ type ProductResponseWrapper struct {
 
 func (p *Product) Validate() error {
 	validate := validator.New()
-	validate.RegisterValidation("sku", validateSKU, false)
+	err := validate.RegisterValidation("sku", validateSKU, false)
+	if err != nil {
+		return err
+	}
 
 	return validate.Struct(p)
 
@@ -66,16 +85,59 @@ func (p *Product) FromJSON(r io.Reader) error {
 	return d.Decode(p)
 }
 
-func GetProducts() Products {
-	return productList
+// GetProducts retrieves a list of products in a given currency from the ProductsDB.
+// If currency is empty, returns the original product list. Otherwise, it gets the
+// exchange rate using getRate and applies it to each product's price to create a new
+// list. May modify the ProductsDB state if getRate is called.
+func (p *ProductsDB) GetProducts(currency string) (Products, error) {
+	// If the currency parameter is empty, return the original productList.
+	if currency == "" {
+		return productList, nil
+	}
+
+	// Otherwise, retrieve the exchange rate for the given currency.
+	rate, err := p.getRate(currency)
+
+	if err != nil {
+		p.log.Error("unable to get rate currency", currency, "error", err)
+		return nil, err
+	}
+
+	// Create a new Products slice to avoid modifying the original
+	// productList, used in different places
+	pr := Products{}
+
+	for _, p := range productList {
+		np := *p
+		np.Price = np.Price * rate
+		pr = append(pr, &np)
+	}
+	return pr, nil
 }
 
-func GetProductByID(id int) (*Product, error) {
+// GetProductByID retrieves a product with a given ID from the ProductsDB.
+// If the product is not found, returns an error.
+// If currency is empty, returns the product.
+// Otherwise, it gets the exchange rate using getRate and applies it to the product's price.
+// May modify the ProductsDB state if getRate is called.
+func (p *ProductsDB) GetProductByID(id int, currency string) (*Product, error) {
 	idx := findIndexByProductID(id)
 	if idx == -1 {
 		return new(Product), ErrProductNotFound
 	}
-	return productList[idx], nil
+	if currency == "" {
+		return productList[idx], nil
+	}
+	rate, err := p.getRate(currency)
+	if err != nil {
+		p.log.Error("unable to get rate", currency, currency, "error", err)
+		return nil, err
+	}
+
+	// This is done to avoid modifying the original product list.
+	npObj := *productList[idx]
+	npObj.Price = npObj.Price * rate
+	return &npObj, nil
 }
 
 func AddProduct(p *Product) {
@@ -92,14 +154,14 @@ func getNextID() int {
 	return lp.ID + 1
 }
 
-func UpdateProducts(id int, p *Product) error {
+func (p *ProductsDB) UpdateProducts(id int, pObj *Product) error {
 
 	idx := findIndexByProductID(id)
 	if idx == -1 {
 		return ErrProductNotFound
 	}
-	p.ID = id
-	productList[idx] = p
+	pObj.ID = id
+	productList[idx] = pObj
 	return nil
 
 }
@@ -111,6 +173,16 @@ func findIndexByProductID(id int) int {
 		}
 	}
 	return -1
+}
+
+func (p *ProductsDB) getRate(destination string) (float64, error) {
+	rr := &protos.RateRequest{
+		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
+		Destination: protos.Currencies(protos.Currencies_value[destination]),
+	}
+
+	resp, err := p.currency.GetRate(context.Background(), rr)
+	return resp.Rate, err
 }
 
 func DeleteProduct(id int) error {
