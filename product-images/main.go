@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"product-images/configs"
@@ -28,15 +27,15 @@ func main() {
 	r := router.NewLocalRouter(l, cfg)
 	routerHandler := r.GetRouter()
 
-	s := server.NewServer(routerHandler, cfg)
+	s := server.NewServer(routerHandler, cfg, l)
 
-	go func(s *server.Server) {
-		fmt.Println("Starting the server on port ", s.Srv.Addr)
+	go func(s *server.Server, l *logrus.Logger) {
+		l.Infoln("Starting the server on port ", s.Srv.Addr)
 		err := s.ListenAndServe()
 		if err != nil {
 			l.Fatal(err)
 		}
-	}(s)
+	}(s, l)
 
 	s.GraceFulShutDown(10 * time.Second)
 

@@ -18,15 +18,13 @@ type viperConfig struct {
 
 func NewViperConfig() Env {
 	v := viper.New()
-	//envPAth := filepath.Join("..", ".env")
-	//v.SetConfigFile(envPAth)
 	c := &viperConfig{cfg: v}
 	c.Load()
 	return c
 }
 
 func (c *viperConfig) Load() {
-	c.cfg.SetConfigFile(".env")
+	c.cfg.SetConfigFile("currency/.env")
 
 	c.cfg.AutomaticEnv()
 

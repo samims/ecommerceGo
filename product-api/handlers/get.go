@@ -21,11 +21,11 @@ func (p *Products) GetByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case data.ErrProductNotFound:
-			p.l.Println("[ERROR] fetching product", err)
+			p.l.Errorf("unable fetching product %s", err.Error())
 			utils.RespondWithError(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			p.l.Println("[ERROR]: fetching product", err)
+			p.l.Errorf("unable fetching product %s", err.Error())
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

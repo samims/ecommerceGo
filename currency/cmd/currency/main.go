@@ -41,7 +41,7 @@ func main() {
 		log.Error("Unable to listen", "error", err)
 		os.Exit(1)
 	}
-	log.Println("Serving on port", portStr)
+	log.Info("Serving on port", portStr)
 	err = gs.Serve(l)
 	if err != nil {
 		log.Fatal("unable to serve grpc ", err)

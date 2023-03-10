@@ -19,7 +19,7 @@ type LocalRouter struct {
 }
 
 func NewLocalRouter(l *logrus.Logger, cfg *configs.Config) *LocalRouter {
-	l.Printf("Router is being initialized with config %+v\n", *cfg)
+	l.Infof("Router is being initialized with config: %+v", *cfg)
 	r := &LocalRouter{
 		l:   l,
 		cfg: cfg,

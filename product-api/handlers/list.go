@@ -21,7 +21,7 @@ import (
 //
 //	void
 func (p *Products) GetProducts(w http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle GET products")
+	p.l.Debugln("Handle GET products")
 
 	// Extract the currency from the request URL parameters.
 	cr := r.URL.Query().Get("currency")

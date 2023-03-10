@@ -15,7 +15,7 @@ func (p *Products) Create(w http.ResponseWriter, r *http.Request) {
 	// fetch the data from context
 	prod := r.Context().Value(KeyProduct{}).(data.Product)
 
-	p.l.Printf("[DEBUG] Inserting product: %v\n", prod)
+	p.l.Debugln("Inserting product: %v\n", prod)
 
 	data.AddProduct(&prod)
 	w.WriteHeader(http.StatusCreated)

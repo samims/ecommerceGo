@@ -1,17 +1,19 @@
 package data
 
 import (
-	"fmt"
 	"testing"
 
+	config "github.com/samims/ecommerceGO/currency/configs"
 	"github.com/sirupsen/logrus"
 )
 
 func TestNewRates(t *testing.T) {
-	tr, err := NewRates(logrus.New())
+	cfg := config.NewViperConfig()
+	tr, err := NewRates(logrus.New(), cfg)
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("Rates %#v", tr.rates)
+
+	tr.log.Infoln("Rates %#v", tr.rates)
 }

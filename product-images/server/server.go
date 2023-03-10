@@ -15,20 +15,23 @@ import (
 	"product-images/configs"
 
 	gorillaHandlers "github.com/gorilla/handlers"
+	"github.com/sirupsen/logrus"
 )
 
 // Server holds an HTTP server instance and router instance
 type Server struct {
 	Router http.Handler
 	Srv    *http.Server
+	log    *logrus.Logger
 }
 
 // NewServer creates and returns a new instance of Server
-func NewServer(handler http.Handler, cfg *configs.Config) *Server {
+func NewServer(handler http.Handler, cfg *configs.Config, l *logrus.Logger) *Server {
 	ch := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins(cfg.AllowedHosts))
 
 	return &Server{
 		Router: handler,
+		log:    l,
 		Srv: &http.Server{
 			Addr:         cfg.ServerCfg.Addr,
 			Handler:      ch(handler),
@@ -52,7 +55,7 @@ func (s *Server) GraceFulShutDown(killTime time.Duration) {
 
 	defer cancel()
 
-	log.Printf("Shutting down server...")
+	s.log.Infoln("Shutting down server...")
 	if err := s.Srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server shutdown failed: %v", err)
 	}

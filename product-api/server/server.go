@@ -15,26 +15,29 @@ import (
 	"product-api/configs"
 
 	gorillaHandlers "github.com/gorilla/handlers"
+	"github.com/sirupsen/logrus"
 )
 
 // Server holds an HTTP server instance and router instance
 type Server struct {
 	Router http.Handler
 	Srv    *http.Server
+	log    *logrus.Logger
 }
 
 // NewServer creates and returns a new instance of Server
-func NewServer(handler http.Handler, cfg *configs.Config) *Server {
-	ch := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins(cfg.AllowedHosts))
+func NewServer(handler http.Handler, cfg configs.Config, log *logrus.Logger) *Server {
+	ch := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins(cfg.AppConfig().GetAllowedHosts()))
 
 	return &Server{
 		Router: handler,
+		log:    log,
 		Srv: &http.Server{
-			Addr:         cfg.ServerCfg.Addr,
+			Addr:         cfg.ServerConfig().GetBindingAddr(),
 			Handler:      ch(handler),
-			IdleTimeout:  cfg.ServerCfg.IdleTimeOut,
-			ReadTimeout:  cfg.ServerCfg.ReadTimeOut,
-			WriteTimeout: cfg.ServerCfg.WriteTimeOut,
+			IdleTimeout:  cfg.ServerConfig().GetIdleTimeOut(),
+			ReadTimeout:  cfg.ServerConfig().GetReadTimeOut(),
+			WriteTimeout: cfg.ServerConfig().GetWriteTimeOut(),
 		},
 	}
 }
@@ -52,7 +55,7 @@ func (s *Server) GraceFulShutDown(killTime time.Duration) {
 
 	defer cancel()
 
-	log.Printf("Shutting down server...")
+	s.log.Infoln("Shutting down server...")
 	if err := s.Srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server shutdown failed: %v", err)
 	}
