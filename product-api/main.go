@@ -1,16 +1,15 @@
 package main
 
 import (
-	"os"
 	"time"
 
 	"product-api/configs"
+	"product-api/constants"
 	"product-api/logger"
 	"product-api/router"
 	"product-api/server"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	protos "github.com/samims/ecommerceGO/currency/protos/currency"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -19,19 +18,20 @@ import (
 
 func main() {
 
-	loadEnv()
-	bindAddress := getEnv("BIND_ADDRESS", "")
-	logLevel := logrus.DebugLevel
-	imageDIR := getEnv("IMAGE_DIR", "")
-	mediaURL := getEnv("MEDIA_URL", "")
-	allowedHosts := []string{getEnv("MEDIA_URL", "")}
-	currencyServerBase := getEnv("CURRENCY_SERVER_BASE")
+	envs := configs.NewEnv()
+
+	bindAddress := envs.GetString(constants.BindAddress)
+	logLevel := envs.GetString(constants.LogLevel)
+	imageDir := envs.GetString(constants.ImageDir)
+	mediaURL := envs.GetString(constants.MediaURL)
+	allowedHosts := envs.GetStringSlice(constants.AllowedHosts)
+	currencyServerBase := envs.GetString(constants.CurrencyServerBase)
 
 	// Initialize the logger.
 	l := initLogger(logLevel)
 
 	// app cfg
-	appCfg := createAppConfig(allowedHosts, imageDIR, mediaURL, currencyServerBase)
+	appCfg := createAppConfig(allowedHosts, imageDir, mediaURL, currencyServerBase)
 	// Create the server configuration.
 	serverCfg := createServerConfig(bindAddress)
 
@@ -58,8 +58,12 @@ func createAppConfig(allowedHosts []string, imageDIR, mediaURL, currencyServerBa
 
 }
 
-func initLogger(logLevel logrus.Level) *logrus.Logger {
-	return logger.NewLogger(logLevel)
+func initLogger(logLevel string) *logrus.Logger {
+	lLevel, err := logrus.ParseLevel(logLevel)
+	if err != nil {
+		panic(err)
+	}
+	return logger.NewLogger(lLevel)
 }
 
 func createServerConfig(bindAddress string) configs.ServerConfig {
@@ -84,26 +88,6 @@ func createRouter(l *logrus.Logger, cfg *configs.Config, cc protos.CurrencyClien
 
 func createServer(r *mux.Router, cfg configs.Config, l *logrus.Logger) *server.Server {
 	return server.NewServer(r, cfg, l)
-}
-
-func loadEnv() {
-	err := godotenv.Load()
-	if err != nil {
-		logrus.Fatalf("Error loading .env file: %v", err)
-	}
-
-}
-
-// getEnv returns the value of the specified environment variable
-// or the default value if it is not set.
-func getEnv(key string, defaultValue ...string) string {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		if len(defaultValue) > 1 {
-			value = defaultValue[0]
-		}
-	}
-	return value
 }
 
 func startServer(s *server.Server, l *logrus.Logger) {

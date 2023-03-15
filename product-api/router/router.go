@@ -39,8 +39,12 @@ func (r *Router) GetRouter() *mux.Router {
 }
 
 func registerRoutes(router *mux.Router, ph *handlers.Products) {
+	currencyRegex := "{[A-Z]{3}}"
+	///^[A-Z]{3}$
+
 	getRouter := router.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/", ph.GetProducts)
+	// todo: regex validation not working
+	getRouter.HandleFunc("/", ph.GetProducts).Queries("currency", currencyRegex)
 	getRouter.HandleFunc("/{id:[0-9]+}", ph.GetByID)
 
 	putRouter := router.Methods(http.MethodPut).Subrouter()

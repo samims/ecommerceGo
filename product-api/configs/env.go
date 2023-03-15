@@ -10,46 +10,51 @@ type Env interface {
 	GetInt(key string) int
 	GetBool(key string) bool
 	GetFloat64(key string) float64
+	GetStringSlice(key string) []string
 }
 
 type env struct {
-	cfg *viper.Viper
+	viperLib *viper.Viper
 }
 
 func NewEnv() Env {
 	v := viper.New()
-	c := &env{cfg: v}
+	c := &env{viperLib: v}
 	c.Load()
 	return c
 }
 
-func (e *env) Load() {
-	e.cfg.SetConfigFile("product-api/.env")
-	e.cfg.AutomaticEnv()
+func (e *env) GetStringSlice(key string) []string {
+	return e.viperLib.GetStringSlice(key)
+}
 
-	if err := e.cfg.ReadInConfig(); err != nil {
+func (e *env) Load() {
+	e.viperLib.SetConfigFile(".env")
+	e.viperLib.AutomaticEnv()
+
+	if err := e.viperLib.ReadInConfig(); err != nil {
 		panic(err)
 	}
 }
 
 func (e *env) Get(key string) interface{} {
-	return e.cfg.Get(key)
+	return e.viperLib.Get(key)
 }
 
 func (e *env) GetString(key string) string {
-	return e.cfg.GetString(key)
+	return e.viperLib.GetString(key)
 }
 
 func (e *env) GetInt(key string) int {
-	return e.cfg.GetInt(key)
+	return e.viperLib.GetInt(key)
 }
 
 func (e *env) GetBool(key string) bool {
-	return e.cfg.GetBool(key)
+	return e.viperLib.GetBool(key)
 }
 
 func (e *env) GetFloat64(key string) float64 {
-	return e.cfg.GetFloat64(key)
+	return e.viperLib.GetFloat64(key)
 }
 
 func init() {

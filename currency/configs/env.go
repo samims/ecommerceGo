@@ -24,7 +24,7 @@ func NewViperConfig() Env {
 }
 
 func (c *viperConfig) Load() {
-	c.cfg.SetConfigFile("currency/.env")
+	c.cfg.SetConfigFile(".env")
 
 	c.cfg.AutomaticEnv()
 

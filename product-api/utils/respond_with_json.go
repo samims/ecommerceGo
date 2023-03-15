@@ -15,13 +15,13 @@ import (
 //
 // If the encoding of the `payload` fails, this function sends an error response with
 // HTTP status code 500 and a message "internal server error".
-func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+func RespondWithJSON(w http.ResponseWriter, code int, body interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
-	err := ToJSON(payload, w)
+	err := ToJSON(body, w)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "internal server error")
+		RespondWithError(w, http.StatusInternalServerError, "unable to serialize resp data")
 	}
 
 }

@@ -7,7 +7,6 @@ require (
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
-	github.com/joho/godotenv v1.5.1
 	github.com/samims/ecommerceGO/currency v0.0.0-20230308183944-ad82f067ee86
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
