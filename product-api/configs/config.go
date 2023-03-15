@@ -1,21 +1,27 @@
 package configs
 
-type Config struct {
-	AllowedHosts       []string
-	ImageDIR           string
-	MediaURL           string
-	ServerCfg          *ServerConf
-	CurrencyServerBase string
+// Config defines the main configuration interface.
+type Config interface {
+	ServerConfig() ServerConfig
+	AppConfig() AppConfig
 }
 
-func NewConfig(allowedHosts []string, imageDIR, mediaURL, currencyServerBase string, sCfg *ServerConf) *Config {
-	cfg := &Config{
-		AllowedHosts:       allowedHosts,
-		ImageDIR:           imageDIR,
-		ServerCfg:          sCfg,
-		MediaURL:           mediaURL,
-		CurrencyServerBase: currencyServerBase,
-	}
+type config struct {
+	serverConfig *serverConfig
+	appConfig    *appConfig
+}
 
-	return cfg
+func (c *config) ServerConfig() ServerConfig {
+	return c.serverConfig
+}
+
+func (c *config) AppConfig() AppConfig {
+	return c.appConfig
+}
+
+func NewConfig(sConf ServerConfig, aConf AppConfig) Config {
+	return &config{
+		serverConfig: sConf.(*serverConfig),
+		appConfig:    aConf.(*appConfig),
+	}
 }

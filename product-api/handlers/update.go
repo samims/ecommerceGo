@@ -21,7 +21,7 @@ func (p *Products) UpdateProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.l.Println("Handle put request", id)
+	p.l.Debugln("Handle put request", id)
 
 	// Extract the product data from the request context.
 	prod := r.Context().Value(KeyProduct{}).(data.Product)
@@ -30,7 +30,7 @@ func (p *Products) UpdateProducts(w http.ResponseWriter, r *http.Request) {
 	if err := p.productDB.UpdateProducts(id, &prod); err != nil {
 		switch err {
 		case data.ErrProductNotFound:
-			p.l.Println("[ERROR] product not found with provided id ", id)
+			p.l.Errorln("product not found with provided id ", id)
 			http.Error(w, "Product not found", http.StatusNotFound)
 		default:
 			http.Error(w, "Error updating product", http.StatusInternalServerError)

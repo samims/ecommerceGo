@@ -18,8 +18,6 @@ type viperConfig struct {
 
 func NewViperConfig() Env {
 	v := viper.New()
-	//envPAth := filepath.Join("..", ".env")
-	//v.SetConfigFile(envPAth)
 	c := &viperConfig{cfg: v}
 	c.Load()
 	return c

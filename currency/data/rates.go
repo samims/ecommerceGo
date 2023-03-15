@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -51,7 +52,16 @@ func (e *ExchangeRates) gerRates(uri string) error {
 		return fmt.Errorf("expected error code 200 got %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer func(body io.ReadCloser, e *ExchangeRates) {
+		if body != nil {
+			err := body.Close()
+			if err != nil {
+				e.log.Error("error closing response body")
+			}
+		}
+	}(resp.Body, e)
+
+	// rest of your code
 
 	cubes := &Cubes{}
 	err = xml.NewDecoder(resp.Body).Decode(&cubes)

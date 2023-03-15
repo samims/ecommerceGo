@@ -20,12 +20,12 @@ func (p *Products) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(vars["id"])
 
-	p.l.Println("Handle delete product", id)
+	p.l.Debugln("Handle delete product", id)
 
 	if err := data.DeleteProduct(id); err != nil {
 		switch err {
 		case data.ErrProductNotFound:
-			p.l.Println("[Error]: Product not found for deletion with id ", id)
+			p.l.Errorln("Product not found for deletion with id ", id)
 			http.Error(w, "product not found", http.StatusNotFound)
 		default:
 			http.Error(w, "Error deleting product", http.StatusInternalServerError)
