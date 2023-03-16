@@ -40,38 +40,87 @@ func (c *Currency) GetRate(ctx context.Context, rr *protos.RateRequest) (*protos
 }
 
 // SubscribeRates implements the gRPC bidirectional streaming method for the server
+//func (c *Currency) SubscribeRates(src protos.Currency_SubscribeRatesServer) error {
+//	// handle client messages
+//	go func() {
+//		for {
+//			rr, err := src.Recv() // Recv is a blocking method which returns on client data
+//			// io.EOF signals that the client has closed the connection
+//			if err == io.EOF {
+//				c.log.Info("Client has closed connection")
+//				break
+//			}
+//
+//			// any other error means the transport between the server and client is unavailable
+//			if err != nil {
+//				c.log.Error("Unable to read from client", "error", err)
+//				break
+//			}
+//
+//			c.log.Info("Handle client request ", "request_base ", rr.GetBase(), " request_dest ", rr.GetDestination())
+//		}
+//	}()
+//
+//	// handle server responses
+//	ticker := time.NewTicker(5 * time.Second)
+//	defer ticker.Stop()
+//	for {
+//		select {
+//		case <-ticker.C:
+//			// send a message back to the client
+//			err := src.Send(&protos.RateResponse{Rate: 12.1})
+//			if err != nil {
+//				return err
+//			}
+//		}
+//	}
+//}
+
 func (c *Currency) SubscribeRates(src protos.Currency_SubscribeRatesServer) error {
-	// handle client messages
-	go func() {
+	handleClientMessages := func() error {
 		for {
-			rr, err := src.Recv() // Recv is a blocking method which returns on client data
+			rr, err := src.Recv()
+			// Recv is a blocking method which returns on client data
 			// io.EOF signals that the client has closed the connection
 			if err == io.EOF {
 				c.log.Info("Client has closed connection")
-				break
+				return nil
 			}
 
 			// any other error means the transport between the server and client is unavailable
 			if err != nil {
 				c.log.Error("Unable to read from client", "error", err)
-				break
+				return err
 			}
 
 			c.log.Info("Handle client request ", "request_base ", rr.GetBase(), " request_dest ", rr.GetDestination())
 		}
-	}()
+	}
 
-	// handle server responses
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			// send a message back to the client
-			err := src.Send(&protos.RateResponse{Rate: 12.1})
-			if err != nil {
-				return err
+	handleServerResponses := func() error {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				// send a message back to the client
+				err := src.Send(&protos.RateResponse{Rate: 12.1})
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
+
+	errChan := make(chan error, 2)
+	go func() { errChan <- handleClientMessages() }()
+	go func() { errChan <- handleServerResponses() }()
+
+	for i := 0; i < 2; i++ {
+		if err := <-errChan; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
