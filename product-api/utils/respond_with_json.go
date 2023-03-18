@@ -14,7 +14,7 @@ import (
 //	payload: parameter is an interface{} type that represents the data written to body
 //
 // If the encoding of the `payload` fails, this function sends an error response with
-// HTTP status code 500 and a message "internal server error".
+// HTTP status code 500 and a message "internal handlers error".
 func RespondWithJSON(w http.ResponseWriter, code int, body interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

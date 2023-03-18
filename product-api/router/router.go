@@ -33,7 +33,7 @@ func NewRouter(logger *logrus.Logger, cfg *configs.Config, cc protos.CurrencyCli
 }
 
 // GetRouter returns the pointer to the router instance.
-// The router is ready to use for the HTTP server.
+// The router is ready to use for the HTTP handlers.
 func (r *Router) GetRouter() *mux.Router {
 	return r.router
 }

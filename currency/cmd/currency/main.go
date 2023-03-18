@@ -1,50 +1,83 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	config "github.com/samims/ecommerceGO/currency/configs"
-	"github.com/sirupsen/logrus"
-
-	"github.com/samims/ecommerceGO/currency/constants"
 	"github.com/samims/ecommerceGO/currency/data"
 	"github.com/samims/ecommerceGO/currency/logger"
-	protos "github.com/samims/ecommerceGO/currency/protos/currency"
 	"github.com/samims/ecommerceGO/currency/server"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	log := logger.NewLogger(logrus.DebugLevel)
+	// Initialize configuration
+	os.Setenv("GRPC_GO_LOG_VERBOSITY_LEVEL", "debug")
 	cfg := config.NewViperConfig()
+	logLevel, err := logrus.ParseLevel(cfg.GetString("log_level"))
+	if err != nil {
+		fmt.Errorf("error parsing log level: %s", err)
+		os.Exit(1)
+	}
+	log := logger.NewLogger(logLevel)
+	// Initialize logger
+	if err != nil {
+		log.Fatal("Error parsing log level:", err)
+	}
 
-	gs := grpc.NewServer()
+	// Initialize server
+	s, err := initializeServer(cfg, log)
+	if err != nil {
+		log.WithError(err).Fatal("Error initializing server")
+	}
+
+	// Start server
+	startServer(s, log)
+
+	// Gracefully shut down server on SIGINT or SIGTERM
+	shutdownServer(s, log)
+}
+
+func initializeServer(cfg config.Env, log *logrus.Logger) (*server.Server, error) {
+	// Initialize rates
 	rates, err := data.NewRates(log, cfg)
 	if err != nil {
-		log.Error("unable to generate rates", "error", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("unable to generate rates: %s", err)
 	}
 
-	cs := server.NewCurrency(log, rates)
+	// Initialize server
+	return server.NewServer(cfg, log, rates)
+}
 
-	protos.RegisterCurrencyServer(gs, cs)
+func startServer(s *server.Server, log *logrus.Logger) {
+	go func() {
+		if err := s.Start(); err != nil {
+			log.WithError(err).Fatal("Error starting server")
+		}
+	}()
+}
 
-	reflection.Register(gs)
-	portStr := cfg.GetString(constants.EnvPort)
+func shutdownServer(s *server.Server, log *logrus.Logger) {
+	log.Info("Shutting down server...")
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%s", portStr))
-	if err != nil {
-		log.Error("Unable to listen", "error", err)
-		os.Exit(1)
+	// Set up a channel to receive the SIGINT or SIGTERM signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	// Create a context with a timeout of 300 milliseconds
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	ctx := context.Background()
+
+	// Stop the server using the context
+	if err := s.Stop(ctx); err != nil {
+		log.WithError(err).Fatal("Error stopping server")
 	}
-	log.Info("Serving on port", portStr)
-	err = gs.Serve(l)
-	if err != nil {
-		log.Fatal("unable to serve grpc ", err)
-	}
 
+	log.Info("Server gracefully stopped")
 }

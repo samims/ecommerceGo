@@ -1,4 +1,4 @@
-// Package server provides a struct for HTTP server and methods to run it
+// Package handlers provides a struct for HTTP handlers and methods to run it
 // and handle graceful shutdown.
 
 package server
@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Server holds an HTTP server instance and router instance
+// Server holds an HTTP handlers instance and router instance
 type Server struct {
 	Router http.Handler
 	Srv    *http.Server
@@ -42,7 +42,7 @@ func NewServer(handler http.Handler, cfg *configs.Config, l *logrus.Logger) *Ser
 	}
 }
 
-// GraceFulShutDown waits for an interrupt signal and gracefully shuts down the server
+// GraceFulShutDown waits for an interrupt signal and gracefully shuts down the handlers
 func (s *Server) GraceFulShutDown(killTime time.Duration) {
 	stopCh := make(chan os.Signal, 1)
 	signal.Notify(stopCh, os.Interrupt)
@@ -55,19 +55,19 @@ func (s *Server) GraceFulShutDown(killTime time.Duration) {
 
 	defer cancel()
 
-	s.log.Infoln("Shutting down server...")
+	s.log.Infoln("Shutting down handlers...")
 	if err := s.Srv.Shutdown(ctx); err != nil {
 		log.Fatalf("Server shutdown failed: %v", err)
 	}
 
 }
 
-// ListenAndServe starts the HTTP server
+// ListenAndServe starts the HTTP handlers
 func (s *Server) ListenAndServe() error {
 	return s.Srv.ListenAndServe()
 }
 
-// Shutdown shuts down the HTTP server
+// Shutdown shuts down the HTTP handlers
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.Srv.Shutdown(ctx)
 }
