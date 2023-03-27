@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"syscall"
+	"time"
 
 	config "github.com/samims/ecommerceGO/currency/configs"
 	"github.com/samims/ecommerceGO/currency/data"
@@ -34,11 +34,11 @@ func main() {
 	if err != nil {
 		log.WithError(err).Fatal("Error initializing server")
 	}
-
-	// Start server
 	startServer(s, log)
-
-	// Gracefully shut down server on SIGINT or SIGTERM
+	// Start the server
+	// This function will start the server in a new goroutine
+	// and will not block the main goroutine
+	// It will log any errors encountered during the startup process	startServer(s, log)
 	shutdownServer(s, log)
 }
 
@@ -54,6 +54,7 @@ func initializeServer(cfg config.Env, log *logrus.Logger) (*server.Server, error
 }
 
 func startServer(s *server.Server, log *logrus.Logger) {
+	log.Info("Starting the server..")
 	go func() {
 		if err := s.Start(); err != nil {
 			log.WithError(err).Fatal("Error starting server")
@@ -62,19 +63,18 @@ func startServer(s *server.Server, log *logrus.Logger) {
 }
 
 func shutdownServer(s *server.Server, log *logrus.Logger) {
-	log.Info("Shutting down server...")
-
-	// Set up a channel to receive the SIGINT or SIGTERM signal
+	// Set up a channel to receive the OS interrupt signal
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt)
+
+	// Wait for the interrupt signal
 	<-sigChan
+	log.Info("Received interrupt signal")
 
-	// Create a context with a timeout of 300 milliseconds
-	//ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
-	ctx := context.Background()
+	// Stop the server using a context with a timeout of 5 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	// Stop the server using the context
 	if err := s.Stop(ctx); err != nil {
 		log.WithError(err).Fatal("Error stopping server")
 	}
