@@ -74,7 +74,7 @@ func (x *currencySubscribeRatesClient) Recv() (*RateResponse, error) {
 	return m, nil
 }
 
-// CurrencyServer is the server API for Currency service.
+// CurrencyServer is the handlers API for Currency service.
 // All implementations must embed UnimplementedCurrencyServer
 // for forward compatibility
 type CurrencyServer interface {

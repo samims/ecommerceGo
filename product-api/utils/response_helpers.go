@@ -14,7 +14,7 @@ func RespondWithError(w http.ResponseWriter, code int, message string) {
 	w.WriteHeader(code)
 	jsonErr := ToJSON(GenericError{Message: message}, w)
 	if jsonErr != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Internal handlers error", http.StatusInternalServerError)
 		return
 	}
 }

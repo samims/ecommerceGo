@@ -38,12 +38,40 @@ type Products []*Product
 type ProductsDB struct {
 	currency protos.CurrencyClient
 	log      *logrus.Logger
+	rates    map[string]float64
+	client   protos.Currency_SubscribeRatesClient
 }
 
 func NewProductsDB(c protos.CurrencyClient, l *logrus.Logger) *ProductsDB {
-	return &ProductsDB{
+	pdb := &ProductsDB{
 		currency: c,
 		log:      l,
+		rates:    make(map[string]float64),
+	}
+
+	go pdb.handleUpdates()
+
+	return pdb
+}
+
+func (p *ProductsDB) handleUpdates() {
+	subscribedClient, err := p.currency.SubscribeRates(context.Background())
+	if err != nil {
+		p.log.Error("unable to subscribe for rates ", " error ", err)
+	}
+	p.client = subscribedClient
+
+	for {
+		rr, err := subscribedClient.Recv()
+		if err == io.EOF {
+			p.log.Error("eof receiving message ", " error ", err)
+			break
+		}
+		if err != nil {
+			p.log.Errorf("error receiving message: %v", err)
+			continue
+		}
+		p.rates[rr.Destination.String()] = rr.Rate
 	}
 }
 
@@ -89,6 +117,15 @@ func (p *Product) FromJSON(r io.Reader) error {
 // If currency is empty, returns the original product list. Otherwise, it gets the
 // exchange rate using getRate and applies it to each product's price to create a new
 // list. May modify the ProductsDB state if getRate is called.
+// Parameters:
+//
+//	id (int): The ID of the product to retrieve.
+//	currency (string): The currency to use for the product price (optional).
+//
+// Returns:
+//
+//	*Product: The product object.
+//	error: Returns an error if the product is not found or if an error occurred.
 func (p *ProductsDB) GetProducts(currency string) (Products, error) {
 	// If the currency parameter is empty, return the original productList.
 	if currency == "" {
@@ -118,8 +155,15 @@ func (p *ProductsDB) GetProducts(currency string) (Products, error) {
 // GetProductByID retrieves a product with a given ID from the ProductsDB.
 // If the product is not found, returns an error.
 // If currency is empty, returns the product.
-// Otherwise, it gets the exchange rate using getRate and applies it to the product's price.
 // May modify the ProductsDB state if getRate is called.
+//
+// Parameters:
+// id (int): The ID of the product to retrieve.
+// currency (string): The currency in which to retrieve the product's price.
+//
+// Returns:
+// (*Product): A pointer to the retrieved product object.
+// error: Returns an error if the product is not found or if there's an issue with the currency rate conversion.
 func (p *ProductsDB) GetProductByID(id int, currency string) (*Product, error) {
 	idx := findIndexByProductID(id)
 	if idx == -1 {
@@ -154,6 +198,15 @@ func getNextID() int {
 	return lp.ID + 1
 }
 
+// UpdateProducts updates a product in the database by ID.
+// Parameters:
+//
+//	id (int): The ID of the product to update.
+//	pObj (*Product): The updated product object.
+//
+// Returns:
+//
+//	error: Returns an error if the product is not found.
 func (p *ProductsDB) UpdateProducts(id int, pObj *Product) error {
 
 	idx := findIndexByProductID(id)
@@ -176,12 +229,22 @@ func findIndexByProductID(id int) int {
 }
 
 func (p *ProductsDB) getRate(destination string) (float64, error) {
+	if r, ok := p.rates[destination]; ok {
+		return r, nil
+	}
+
 	rr := &protos.RateRequest{
 		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
 		Destination: protos.Currencies(protos.Currencies_value[destination]),
 	}
 
 	resp, err := p.currency.GetRate(context.Background(), rr)
+	// cache
+	p.rates[destination] = resp.Rate
+	err = p.client.Send(rr)
+	if err != nil {
+		return 0, err
+	}
 	return resp.Rate, err
 }
 

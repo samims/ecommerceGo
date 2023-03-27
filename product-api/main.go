@@ -32,7 +32,7 @@ func main() {
 
 	// app cfg
 	appCfg := createAppConfig(allowedHosts, imageDir, mediaURL, currencyServerBase)
-	// Create the server configuration.
+	// Create the handlers configuration.
 	serverCfg := createServerConfig(bindAddress)
 
 	// Create the application configuration.
@@ -45,11 +45,11 @@ func main() {
 	// Create the router.
 	r := createRouter(l, &cfg, cc)
 
-	// Create the server.
+	// Create the handlers.
 	routerObj := r.GetRouter()
 	s := createServer(routerObj, cfg, l)
 
-	// Start the server.
+	// Start the handlers.
 	startServer(s, l)
 }
 
@@ -92,7 +92,7 @@ func createServer(r *mux.Router, cfg configs.Config, l *logrus.Logger) *server.S
 
 func startServer(s *server.Server, l *logrus.Logger) {
 	go func(s *server.Server, l *logrus.Logger) {
-		l.Infoln("Starting the server on port ", s.Srv.Addr)
+		l.Infoln("Starting the handlers on port ", s.Srv.Addr)
 		err := s.ListenAndServe()
 		if err != nil {
 			l.Fatal(err)

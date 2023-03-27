@@ -30,7 +30,7 @@ func main() {
 	s := server.NewServer(routerHandler, cfg, l)
 
 	go func(s *server.Server, l *logrus.Logger) {
-		l.Infoln("Starting the server on port ", s.Srv.Addr)
+		l.Infoln("Starting the handlers on port ", s.Srv.Addr)
 		err := s.ListenAndServe()
 		if err != nil {
 			l.Fatal(err)

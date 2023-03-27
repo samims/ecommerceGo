@@ -18,7 +18,9 @@ message RateRequest {
 
 // Define the message type for the response
 message RateResponse {
-  double rate = 1;
+  Currencies base = 1;
+  Currencies destination = 2;
+  double rate = 3;
 }
 
 

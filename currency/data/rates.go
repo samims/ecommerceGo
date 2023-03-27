@@ -1,11 +1,15 @@
 package data
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	config "github.com/samims/ecommerceGO/currency/configs"
 	"github.com/samims/ecommerceGO/currency/constants"
@@ -17,6 +21,7 @@ import (
 
 type ExchangeRates struct {
 	log   *logrus.Logger
+	mutex *sync.Mutex
 	rates map[string]float64
 }
 
@@ -24,7 +29,9 @@ func NewRates(l *logrus.Logger, cfg config.Env) (*ExchangeRates, error) {
 	exchangeRates := &ExchangeRates{
 		log:   l,
 		rates: map[string]float64{},
+		mutex: &sync.Mutex{},
 	}
+
 	rateURI := cfg.GetString(constants.EnvRateUri)
 
 	err := exchangeRates.gerRates(rateURI)
@@ -42,6 +49,124 @@ func (e *ExchangeRates) GetRate(base, dest string) (float64, error) {
 
 	return dr / br, nil
 }
+
+// MonitorRates returns a channel that can be used to monitor currency exchange
+func (e *ExchangeRates) MonitorRates(ctx context.Context, interval time.Duration) chan bool {
+	// Create a new channel of type struct{} and assign it to ret variable
+	ret := make(chan bool)
+
+	// Start a new goroutine that runs the update loop in the background
+	go func(interval time.Duration) {
+		ticker := time.NewTicker(interval)
+
+		// Enter an infinite loop that waits for messages from the ticker channel
+		for {
+			select {
+			// When a message is received from the ticker channel, simulate currency
+			// rate fluctuations and notify any listeners of updates
+			case <-ticker.C:
+				// Acquire the mutex before accessing e.rates
+				e.mutex.Lock()
+
+				// Iterate through each currency rate in the map and modify its value
+				// by a random percentage between 10% increase and 10% decrease
+				for k, v := range e.rates {
+					// Generate a random percentage change between -10% and +10%
+					changePercent := rand.Intn(21) - 10 // Returns a random integer between -10 and +10
+
+					// Randomly determine whether the change should be positive or negative
+					direction := rand.Intn(2) // Returns either 0 or 1
+
+					// Modify the rate for the current currency by multiplying it with
+					// the change percentage and direction
+					if direction == 0 {
+						// If the direction is negative, subtract the change percentage from the rate
+						e.rates[k] = v * (100.0 - float64(changePercent)) / 100
+					} else {
+						// If the direction is positive, add the change percentage to the rate
+						e.rates[k] = v * (100.0 + float64(changePercent)) / 100
+					}
+				}
+
+				// Release the mutex after we are done accessing e.rates
+				e.mutex.Unlock()
+
+				// Notify any listeners of updates by sending an empty struct{} on the ret channel
+				// This will block if there is no listener on the other end
+				select {
+				case ret <- true:
+				case <-ctx.Done():
+					e.log.Info("Manually shutdown using context1")
+
+					return
+				}
+
+			case <-ctx.Done():
+				e.log.Info("Manually shutdown using context")
+				return
+			}
+		}
+	}(interval)
+
+	// Return the channel to the caller
+	return ret
+}
+
+// rates at a given time interval
+//func (e *ExchangeRates) MonitorRates(ctx context.Context, interval time.Duration) chan bool {
+//	// Create a new channel of type struct{} and assign it to ret variable
+//	ret := make(chan bool)
+//
+//	// Start a new goroutine that runs the update loop in the background
+//	go func(interval time.Duration) {
+//		ticker := time.NewTicker(interval)
+//
+//		// Enter an infinite loop that waits for messages from the ticker channel
+//		for {
+//			select {
+//			// When a message is received from the ticker channel, simulate currency
+//			// rate fluctuations and notify any listeners of updates
+//			case <-ticker.C:
+//				// Iterate through each currency rate in the map and modify its value
+//				// by a random percentage between 10% increase and 10% decrease
+//				for k, v := range e.rates {
+//					// Generate a random percentage change between -10% and +10%
+//					changePercent := rand.Intn(21) - 10 // Returns a random integer between -10 and +10
+//
+//					// Randomly determine whether the change should be positive or negative
+//					direction := rand.Intn(2) // Returns either 0 or 1
+//
+//					// Modify the rate for the current currency by multiplying it with
+//					// the change percentage and direction
+//					if direction == 0 {
+//						// If the direction is negative, subtract the change percentage from the rate
+//						e.rates[k] = v * (100.0 - float64(changePercent)) / 100
+//					} else {
+//						// If the direction is positive, add the change percentage to the rate
+//						e.rates[k] = v * (100.0 + float64(changePercent)) / 100
+//					}
+//				}
+//
+//				// Notify any listeners of updates by sending an empty struct{} on the ret channel
+//				// This will block if there is no listener on the other end
+//				select {
+//				case ret <- true:
+//				case <-ctx.Done():
+//					e.log.Info("Manually shutdown using context1")
+//
+//					return
+//				}
+//
+//			case <-ctx.Done():
+//				e.log.Info("Manually shutdown using context")
+//				return
+//			}
+//		}
+//	}(interval)
+//
+//	// Return the channel to the caller
+//	return ret
+//}
 
 func (e *ExchangeRates) gerRates(uri string) error {
 	resp, err := http.DefaultClient.Get(uri)

@@ -1,50 +1,83 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net"
 	"os"
+	"os/signal"
+	"time"
 
 	config "github.com/samims/ecommerceGO/currency/configs"
-	"github.com/sirupsen/logrus"
-
-	"github.com/samims/ecommerceGO/currency/constants"
 	"github.com/samims/ecommerceGO/currency/data"
 	"github.com/samims/ecommerceGO/currency/logger"
-	protos "github.com/samims/ecommerceGO/currency/protos/currency"
 	"github.com/samims/ecommerceGO/currency/server"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	log := logger.NewLogger(logrus.DebugLevel)
+	// Initialize configuration
+	os.Setenv("GRPC_GO_LOG_VERBOSITY_LEVEL", "debug")
 	cfg := config.NewViperConfig()
+	logLevel, err := logrus.ParseLevel(cfg.GetString("log_level"))
+	if err != nil {
+		fmt.Errorf("error parsing log level: %s", err)
+		os.Exit(1)
+	}
+	log := logger.NewLogger(logLevel)
+	// Initialize logger
+	if err != nil {
+		log.Fatal("Error parsing log level:", err)
+	}
 
-	gs := grpc.NewServer()
+	// Initialize server
+	s, err := initializeServer(cfg, log)
+	if err != nil {
+		log.WithError(err).Fatal("Error initializing server")
+	}
+	startServer(s, log)
+	// Start the server
+	// This function will start the server in a new goroutine
+	// and will not block the main goroutine
+	// It will log any errors encountered during the startup process	startServer(s, log)
+	shutdownServer(s, log)
+}
+
+func initializeServer(cfg config.Env, log *logrus.Logger) (*server.Server, error) {
+	// Initialize rates
 	rates, err := data.NewRates(log, cfg)
 	if err != nil {
-		log.Error("unable to generate rates", "error", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("unable to generate rates: %s", err)
 	}
 
-	cs := server.NewCurrency(log, rates)
+	// Initialize server
+	return server.NewServer(cfg, log, rates)
+}
 
-	protos.RegisterCurrencyServer(gs, cs)
+func startServer(s *server.Server, log *logrus.Logger) {
+	log.Info("Starting the server..")
+	go func() {
+		if err := s.Start(); err != nil {
+			log.WithError(err).Fatal("Error starting server")
+		}
+	}()
+}
 
-	reflection.Register(gs)
-	portStr := cfg.GetString(constants.EnvPort)
+func shutdownServer(s *server.Server, log *logrus.Logger) {
+	// Set up a channel to receive the OS interrupt signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%s", portStr))
-	if err != nil {
-		log.Error("Unable to listen", "error", err)
-		os.Exit(1)
+	// Wait for the interrupt signal
+	<-sigChan
+	log.Info("Received interrupt signal")
+
+	// Stop the server using a context with a timeout of 5 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.Stop(ctx); err != nil {
+		log.WithError(err).Fatal("Error stopping server")
 	}
-	log.Info("Serving on port", portStr)
-	err = gs.Serve(l)
-	if err != nil {
-		log.Fatal("unable to serve grpc ", err)
-	}
 
+	log.Info("Server gracefully stopped")
 }

@@ -29,7 +29,7 @@ func NewLocalRouter(l *logrus.Logger, cfg *configs.Config) *LocalRouter {
 
 // GetRouter returns a new instance of mux.Router with all the routes and middlewares registered for the local router.
 // It returns the pointer to the router instance.
-// The router is ready to use for the HTTP server.
+// The router is ready to use for the HTTP handlers.
 func (lr *LocalRouter) GetRouter() *mux.Router {
 
 	mw := localMiddleware.GzipHandler{}
