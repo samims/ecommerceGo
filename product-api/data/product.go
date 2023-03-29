@@ -10,6 +10,8 @@ import (
 
 	protos "github.com/samims/ecommerceGO/currency/protos/currency"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -71,7 +73,14 @@ func (p *ProductsDB) handleUpdates() {
 			p.log.Errorf("error receiving message: %v", err)
 			continue
 		}
-		p.rates[rr.Destination.String()] = rr.Rate
+		if grpcError := rr.GetError(); grpcError != nil {
+			p.log.Errorf("error subscribing for rate  error: %s", err)
+			continue
+		}
+		if resp := rr.GetRateResponse(); resp != nil {
+			p.log.Info("received updated rate ", " dest ", resp.Destination.String(), " ", resp.Rate)
+			p.rates[rr.GetRateResponse().Destination.String()] = resp.Rate
+		}
 	}
 }
 
@@ -219,6 +228,13 @@ func (p *ProductsDB) UpdateProducts(id int, pObj *Product) error {
 
 }
 
+// findIndexByProductID searches the productList slice for a product with the given ID and returns the index of the first
+// matching product. If no product with the given ID is found, it returns -1.
+// Args:
+//   id (int): The ID of the product to search for.
+// Returns:
+//   int: The index of the first product in the productList slice with the given ID, or -1 if no such product is found.
+
 func findIndexByProductID(id int) int {
 	for i, p := range productList {
 		if p.ID == id {
@@ -228,24 +244,57 @@ func findIndexByProductID(id int) int {
 	return -1
 }
 
+// getRate returns the current exchange rate for the given destination currency. If the rate is not cached,
+// the function will call the Currency service to get the current rate. The rate will be cached for future
+// calls to improve performance. The function also sends a subscription request to the Currency service to receive
+// updates on the exchange rate for the given destination currency.
+//
+// Parameters:
+//   - destination (string): The 3-letter currency code of the destination currency for which the exchange rate is requested.
+//
+// Returns:
+//   - float64: the exchange rate for the given destination currency.
+//   - error: an error indicating whether the request to the currency service was successful
+//     or not.
 func (p *ProductsDB) getRate(destination string) (float64, error) {
 	if r, ok := p.rates[destination]; ok {
 		return r, nil
 	}
+	return p.fetchRate(destination)
+}
 
+func (p *ProductsDB) fetchRate(destination string) (float64, error) {
 	rr := &protos.RateRequest{
 		Base:        protos.Currencies(protos.Currencies_value["EUR"]),
 		Destination: protos.Currencies(protos.Currencies_value[destination]),
 	}
 
 	resp, err := p.currency.GetRate(context.Background(), rr)
-	// cache
-	p.rates[destination] = resp.Rate
-	err = p.client.Send(rr)
 	if err != nil {
-		return 0, err
+		s, ok := status.FromError(err)
+		if ok {
+			md := s.Details()[0].(*protos.RateRequest)
+			if s.Code() == codes.InvalidArgument {
+				return -1, fmt.Errorf(
+					"unable to get rate from currency server, base - %s & destination - %s is same ",
+					md.Base.String(),
+					md.Destination.String(),
+				)
+			}
+			return -1, fmt.Errorf(
+				"%s, base %s & destination %s",
+				s.Err().Error(),
+				md.Base.String(),
+				md.Destination.String(),
+			)
+		}
+		return -1, err
 	}
-	return resp.Rate, err
+
+	p.rates[destination] = resp.Rate
+	p.client.Send(rr)
+
+	return resp.Rate, nil
 }
 
 func DeleteProduct(id int) error {
