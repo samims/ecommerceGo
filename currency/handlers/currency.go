@@ -9,6 +9,8 @@ import (
 	"github.com/samims/ecommerceGO/currency/data"
 	pb "github.com/samims/ecommerceGO/currency/protos/currency"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type contextKey int
@@ -77,6 +79,34 @@ func (c *CurrencyService) SubscribeRates(stream pb.Currency_SubscribeRatesServer
 			rrs = []*pb.RateRequest{}
 		}
 
+		// check that subscription does not exist
+		var validationError *status.Status
+		for _, v := range rrs {
+			if v.Base == req.Base && v.Destination == req.Destination {
+				validationError = status.Newf(
+					codes.AlreadyExists,
+					"unable to subscribe, already subscribed",
+				)
+				// add original request to the metadata
+				validationError, err = validationError.WithDetails(req)
+				if err != nil {
+					c.log.Errorf("unable to add metadata to error %s", err)
+					break
+				}
+
+				break
+			}
+		}
+		if validationError != nil {
+			stream.Send(
+				&pb.StreamingRateResponse{
+					Message: &pb.StreamingRateResponse_Error{
+						Error: validationError.Proto(),
+					},
+				},
+			)
+		}
+
 		rrs = append(rrs, req)
 		c.subscriptions[stream] = rrs
 	}
@@ -114,7 +144,21 @@ func (c *CurrencyService) updateSubscriptions() {
 					"destination", rr.GetDestination(),
 				)
 			}
-			err = k.Send(&pb.RateResponse{Base: rr.Base, Destination: rr.Destination, Rate: rate})
+			err = k.Send(&pb.StreamingRateResponse{
+				Message: &pb.StreamingRateResponse_RateResponse{
+					RateResponse: &pb.RateResponse{
+						Base:        rr.Base,
+						Destination: rr.Destination,
+						Rate:        rate,
+					},
+				},
+			})
+			if err != nil {
+				c.log.Errorf(
+					"unable to send updated rate base %s destination %s",
+					rr.Base.String(), rr.Destination.String(),
+				)
+			}
 		}
 	}
 }
@@ -123,6 +167,21 @@ func (c *CurrencyService) updateSubscriptions() {
 // It returns a RateResponse containing the exchange rate and the base and destination currencies.
 func (c *CurrencyService) GetRate(_ context.Context, rr *pb.RateRequest) (*pb.RateResponse, error) {
 	c.log.Info("Handle GetRate ", " base ", rr.GetBase(), " destination ", rr.GetDestination())
+	if rr.Base == rr.Destination {
+		err := status.Newf(
+			codes.InvalidArgument,
+			"base currency %s and destination currency %s shouldn't be same",
+			rr.GetBase().String(),
+			rr.GetDestination().String(),
+		)
+		statusObj, errWithDetails := err.WithDetails(rr)
+		if errWithDetails != nil {
+			return nil, errWithDetails
+		}
+		_ = statusObj
+		return nil, statusObj.Err()
+	}
+
 	rate, err := c.rates.GetRate(rr.Base.String(), rr.GetDestination().String())
 	if err != nil {
 		return nil, err

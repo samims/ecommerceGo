@@ -31,7 +31,7 @@ func (p *Products) GetProducts(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		p.l.Error("error getting products")
-		utils.RespondWithError(w, http.StatusFailedDependency, "error getting product")
+		utils.RespondWithError(w, http.StatusFailedDependency, err.Error())
 		return
 	}
 
